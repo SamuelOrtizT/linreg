@@ -1,14 +1,16 @@
 from setuptools import setup, find_packages
 
+with open("./README.md", "r", encoding="utf-8") as readme:
+    long_description = readme.read()
 setup(
-    name='flexreg',
+    name='linreg',
     version='0.1.0',
-    description='Biblioteca de libre desarrollo especializada en regresión lineal y logística',
-    long_description=open('README.md', encoding='utf-8').read(),
+    description='Biblioteca de libre desarrollo especializada en regresiones lineales',
+    long_description=long_description,
     long_description_content_type='text/markdown',
     author='Samuel Ortiz Toro',
     author_email='saortizt@unal.edu.co',
-    url='https://github.com/SamuelOrtizT/flexreg',
+    url='https://github.com/SamuelOrtizT/linreg',
     packages=find_packages(),
     install_requires=[
     'numpy',            # Para la manipulación de arrays y operaciones matemáticas
@@ -29,5 +31,6 @@ setup(
         'Development Status :: 3 - Alpha',
     ],
     python_requires='>=3.8',
-    license="MIT",
+    license='MIT',
+    include_package_data=True
 )
