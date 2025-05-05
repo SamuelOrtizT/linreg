@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from itertools import combinations
 from warnings import warn
-from .base import BaseLRM
+from .BaseLRM import BaseLRM
 
 class lrm(BaseLRM):
     def __init__(self, data : pd.DataFrame, response_col : str | int, predictor_cols : Optional[List[int] | List[str] | int | str] = None) -> None:

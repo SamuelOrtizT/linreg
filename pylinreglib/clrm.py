@@ -2,8 +2,8 @@ from typing import List, Tuple, Optional
 import numpy as np
 import pandas as pd
 from scipy.stats import t
-from .base import BaseLRM
-from .lineal_model import lrm
+from .BaseLRM import BaseLRM
+from .lrm import lrm
 
 class clrm(BaseLRM):
     def __init__(self, data : pd.DataFrame, response_col : str | int, predictor_col : int | str, how : str = 'drop_category', base : str | int = None) -> None:
