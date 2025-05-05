@@ -1,4 +1,4 @@
-# flexreg
+# pylinreglib
 
 Esta es una biblioteca para realizar regresiones lineales y curvas logísticas, compatible con Python. Permite realizar análisis estadísticos avanzados utilizando modelos de regresión múltiple.
 
@@ -7,14 +7,14 @@ Esta es una biblioteca para realizar regresiones lineales y curvas logísticas, 
 Para instalar esta biblioteca, puedes usar `pip`:
 
 ```bash
-pip install flexreg
+pip install pylinreglib
 ```
 ## Requisitos
 - Python >= 3.6
 
-- numpy
+- NumPy
 
-- pandas
+- Pandas
 
 - scipy
 
@@ -28,7 +28,7 @@ Puedes usar la biblioteca para realizar regresiones lineales múltiples con vari
 ```python
 
 import pandas as pd
-from nombre_de_tu_biblioteca import mlrm  # Reemplaza con el nombre real de tu biblioteca
+from pylinreglib import mlrm
 
 # Cargar datos
 data = pd.read_csv('tus_datos.csv')

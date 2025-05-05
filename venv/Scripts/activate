@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\yepestoro\OneDrive\Documentos\TODO Samuel\Universidad Samuel\Semestre VI\Estadística II\LinReg Python Library\linreg\venv"
+VIRTUAL_ENV="C:\Users\yepestoro\OneDrive\Documentos\TODO Samuel\Universidad Samuel\Semestre VI\Estadística II\LinReg Python Library\pylinreglib\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

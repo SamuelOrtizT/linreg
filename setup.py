@@ -3,14 +3,14 @@ from setuptools import setup, find_packages
 with open("./README.md", "r", encoding="utf-8") as readme:
     long_description = readme.read()
 setup(
-    name='linreg',
-    version='0.1.0',
+    name='pylinreglib',
+    version='0.1.1',
     description='Biblioteca de libre desarrollo especializada en regresiones lineales',
     long_description=long_description,
     long_description_content_type='text/markdown',
     author='Samuel Ortiz Toro',
     author_email='saortizt@unal.edu.co',
-    url='https://github.com/SamuelOrtizT/linreg',
+    url='https://github.com/SamuelOrtizT/pylinreglib',
     packages=find_packages(),
     install_requires=[
     'numpy',            # Para la manipulación de arrays y operaciones matemáticas

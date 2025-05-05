@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Users\yepestoro\OneDrive\Documentos\TODO Samuel\Universidad Samuel\Semestre VI\Estadística II\LinReg Python Library\linreg\venv
+set VIRTUAL_ENV=C:\Users\yepestoro\OneDrive\Documentos\TODO Samuel\Universidad Samuel\Semestre VI\Estadística II\LinReg Python Library\pylinreglib\venv
 
 if not defined PROMPT set PROMPT=$P$G
 
