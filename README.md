@@ -1,6 +1,6 @@
 # pylinreglib
 
-Esta es una biblioteca para realizar regresiones lineales y curvas logísticas, compatible con Python. Permite realizar análisis estadísticos avanzados utilizando modelos de regresión múltiple.
+Esta es una biblioteca para realizar regresiones lineales compatible con Python. Permite realizar análisis estadísticos avanzados utilizando modelos de regresión múltiple.
 
 ## Instalación
 
@@ -47,4 +47,4 @@ Regresión Lineal Múltiple (MLRM): Permite realizar regresiones con variables c
 Este proyecto está bajo la licencia MIT - mira el archivo LICENSE para más detalles.
 
 ### Autor
-Samuel Ortiz Toro
+Samuel Ortiz Toro, estudiante de ingenieria de sistemas e informática de la Universidad Nacional de Colombia sede Medellín

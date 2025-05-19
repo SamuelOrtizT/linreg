@@ -302,7 +302,7 @@ class BaseLRM(ABC):
         """
         _, p = self.X_matrix.shape
         leverage = np.diag(self.hat_matrix())
-        Di = (self.residuals ** 2 / p) * (leverage / (1 - leverage))
+        Di = (self.studentized_residuals() ** 2 / p) * (leverage / (1 - leverage))
         return Di > 1
     
     def get_influential_obs(self) -> List[int]:
@@ -323,7 +323,7 @@ class BaseLRM(ABC):
             alpha (float): Nivel de significancia para la prueba (por defecto 0.05).
 
         Returns:
-                True si no se rechaza la hipótesis nula (los residuales son normales), False si se rechaza
+                Valor P, True si no se rechaza la hipótesis nula (los residuales son normales), False si se rechaza
         """
         residuals = self.y - self.predicted()
         p_val = shapiro(residuals)[1]
