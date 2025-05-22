@@ -4,7 +4,7 @@ with open("./README.md", "r", encoding="utf-8") as readme:
     long_description = readme.read()
 setup(
     name='pylinreglib',
-    version='0.1.4',
+    version='0.1.5',
     description='Biblioteca de libre desarrollo especializada en regresiones lineales',
     long_description=long_description,
     long_description_content_type='text/markdown',

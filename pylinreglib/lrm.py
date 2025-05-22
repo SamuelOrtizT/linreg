@@ -435,16 +435,15 @@ class lrm(BaseLRM):
 
         return pd.DataFrame(results).sort_values(by='R2_adj', ascending=False).reset_index(drop=True)
     
-    def forward_selection(self, tol: float = 1e-2) -> pd.DataFrame:
+    def forward_selection(self, alpha: float = 0.05) -> pd.DataFrame:
         """
         Implementa el algoritmo de selección hacia adelante para elegir predictores.
 
-        En cada iteración, se agrega la variable que más reduzca la SSE del modelo,
-        partiendo desde el mejor modelo univariable (con menor MSE). El proceso continúa hasta que la mejora en SSE
-        entre iteraciones sea menor que la tolerancia `tol`.
+        En cada iteración, se agrega la variable con mejor SSExtra, partiendo desde el mejor modelo univariable. 
+        El proceso continúa hasta que no haya predictoras con aporte significativo.
 
         Args:
-            tol (float): Tolerancia mínima de mejora en SSE para continuar agregando variables. Default es 1e-2.
+            alpha (float): Nivel de significancia para la prueba (por defecto 0.05).
 
         Returns:
             pd.DataFrame: Tabla con la evolución del modelo, mostrando predictores usados y métricas en cada paso:
@@ -458,56 +457,58 @@ class lrm(BaseLRM):
         remaining = predictors_all.copy()
         results = []
         step = 0
-        prev_sse = np.inf
         MSE_full = self.MSE()
-        n, _ = self.X.shape
+        n, _ = self.X_matrix.shape
+        Cp = None
 
         while len(remaining) > 0:
             step += 1
             best_candidate = None
-            best_sse = np.inf
-            best_model = None
+            best_SSExtra = -1
+            prev_best_model = lrm(data, response_col = response, predictor_cols = selected)
+            if self.standar:
+                prev_best_model.standardize(inplace=True)
+            pbm_ssr = prev_best_model.SSR()
 
             for candidate in remaining:
                 trial = selected + [candidate]
                 model = lrm(data, response_col=response, predictor_cols=trial)
                 if self.standar:
                     model.standardize(inplace=True)
-                sse = model.SSE()
-                if sse < best_sse:
-                    best_sse = sse
+                SSExtra = model.SSR() - pbm_ssr
+                if SSExtra > best_SSExtra:
+                    best_SSExtra = SSExtra
                     best_candidate = candidate
                     best_model = model
-                    Cp = (best_model.SSE() / MSE_full) - (n - 2 * (best_model.X.shape[1] + 1))
+                    Cp = (best_model.SSE() / MSE_full) - (n - 2 * (best_model.X_matrix.shape[1]))
 
-            improvement = prev_sse - best_sse
-            if improvement < tol:
+            temp_list = list(best_model.X.columns)
+            indice = temp_list.index(best_candidate)
+            if not ((best_model.coefficients_hipotesis_test(alpha=alpha))[indice]): #Es significativa
+                selected.append(best_candidate)
+                remaining.remove(best_candidate)
+                results.append({
+                    'step': step,
+                    'predictors': tuple(selected),
+                    'MSE': best_model.MSE(),
+                    'R2_adj': best_model.R2_adj(),
+                    'PRESSp' : best_model.PRESSp(),
+                    'Cp' : Cp
+                })
+            else:
                 break
-
-            selected.append(best_candidate)
-            remaining.remove(best_candidate)
-            prev_sse = best_sse
-
-            results.append({
-                'step': step,
-                'predictors': tuple(selected),
-                'MSE': best_model.MSE(),
-                'R2_adj': best_model.R2_adj(),
-                'PRESSp' : best_model.PRESSp(),
-                'Cp' : Cp
-            })
 
         return pd.DataFrame(results)
 
-    def backward_elimination(self, tol: float = 1e-2) -> pd.DataFrame:
+    def backward_elimination(self, alpha: float = 0.05) -> pd.DataFrame:
         """
         Implementa el algoritmo de eliminación hacia atrás (greedy backward elimination) para seleccionar predictores.
 
-        En cada iteración, se elimina la variable cuya exclusión más reduzca la SSE del modelo.
-        El proceso continúa hasta que la mejora en SSE entre iteraciones sea menor que la tolerancia `tol`.
+        En cada iteración, se elimina la variable con peor SSExtra y que NO sea significativa.
+        El proceso continúa hasta haber eliminado las variables NO significativas.
 
         Args:
-            tol (float): Tolerancia mínima de mejora en SSE para continuar eliminando variables. Default es 1e-2.
+            alpha (float): Nivel de significancia para la prueba (por defecto 0.05).
 
         Returns:
             pd.DataFrame: Tabla con la evolución del modelo, mostrando predictores usados y métricas en cada paso:
@@ -521,10 +522,9 @@ class lrm(BaseLRM):
         results = []
         step = 0
         model_full = self
-        prev_sse = model_full.SSE()
         MSE_full = model_full.MSE()
-        n, _ = self.X.shape
-        Cp = (model_full.SSE() / MSE_full) - (n - 2 * (model_full.X.shape[1] + 1))
+        n, p = self.X_matrix.shape
+        Cp = (model_full.SSE() / MSE_full) - (n - 2 * p)
         results.append({
             'step': step,
             'predictors': tuple(selected),
@@ -537,50 +537,52 @@ class lrm(BaseLRM):
         while len(selected) > 1:
             step += 1
             best_subset = None
-            min_sse_increase = np.inf
-            best_model = None
+            prev_best_model = lrm(data, response_col=response, predictor_cols=selected)
+            if self.standar:
+                prev_best_model.standardize(inplace=True)
+            pbm_ssr = prev_best_model.SSR()
+            worst_SSExtra = np.inf
 
             for candidate in selected:
                 trial = [v for v in selected if v != candidate]
                 model = lrm(data, response_col=response, predictor_cols=trial)
                 if self.standar:
                     model.standardize(inplace=True)
-                sse = model.SSE()
-                sse_increase = sse - prev_sse
-                if sse_increase < min_sse_increase:
-                    min_sse_increase = sse_increase
+                SSExtra = pbm_ssr - model.SSR()
+                if SSExtra < worst_SSExtra:
+                    worst_SSExtra = SSExtra
                     best_subset = trial
                     best_model = model
-                    Cp = (model.SSE() / MSE_full) - (n - 2 * (model.X.shape[1] + 1))
+                    worst_predictor = candidate
+                    Cp = (best_model.SSE() / MSE_full) - (n - 2 * (best_model.X_matrix.shape[1]))
 
-            if min_sse_increase > tol:
+            indice = selected.index(worst_predictor)
+            if ((prev_best_model.coefficients_hipotesis_test(alpha=alpha))[indice]): #No es significativa
+                selected = best_subset
+                results.append({
+                    'step': step,
+                    'predictors': tuple(selected),
+                    'MSE': best_model.MSE(),
+                    'R2_adj': best_model.R2_adj(),
+                    'PRESSp': best_model.PRESSp(),
+                    'Cp': Cp
+                })
+            else:
                 break
-
-            selected = best_subset
-            prev_sse = best_model.SSE()
-            results.append({
-                'step': step,
-                'predictors': tuple(selected),
-                'MSE': best_model.MSE(),
-                'R2_adj': best_model.R2_adj(),
-                'PRESSp': best_model.PRESSp(),
-                'Cp': Cp
-            })
 
         return pd.DataFrame(results)
     
-    def stepwise_selection(self, tol_add: float = 1e-2, tol_remove: float = 1e-2) -> pd.DataFrame:
+    def stepwise_selection(self, alpha: float = 0.05) -> pd.DataFrame:
         """
         Implementa el algoritmo de selección Stepwise (adelante + atrás) para elegir predictores.
 
         En cada paso:
-            - Se intenta agregar la variable que más reduzca el SSE (si mejora más que `tol_add`).
-            - Luego se intenta eliminar alguna de las actuales si su salida aumenta el SSE menos que `tol_remove`.
+            - Se intenta agregar la variable con mejor SSExtra y significativa
+            - Luego se intenta eliminar alguna de las actuales con peor SSExtra y no significativa
             - Se evita entrar en ciclos de añadir/quitar las mismas variables.
 
         Args:
-            tol_add (float): Tolerancia mínima de mejora en SSE para agregar una variable.
-            tol_remove (float): Tolerancia máxima de aumento en SSE para eliminar una variable.
+            alpha (float): Nivel de significancia para la prueba (por defecto 0.05).
 
         Returns:
             pd.DataFrame: Tabla con la evolución del modelo: 'step', 'predictors', 'MSE', 'R2_adj', 'PRESSp', 'Cp'
@@ -591,92 +593,70 @@ class lrm(BaseLRM):
 
         selected = []
         remaining = predictors_all.copy()
-        history = []
         results = []
         step = 0
         MSE_full = self.MSE()
-        n, _ = self.X.shape
+        n, _ = self.X_matrix.shape
+        Cp = None
 
-        while True:
+        while len(remaining) > 0:
             step += 1
-            improved = False
-            current_model = lrm(data, response_col=response, predictor_cols=selected)
-            if self.standar:
-                current_model.standardize(inplace=True)
-            prev_sse = current_model.SSE()
-
-            # --- Forward Step ---
             best_candidate = None
-            best_model_add = None
-            best_sse_add = np.inf
+            best_SSExtra = -1
+            prev_best_model = lrm(data, response_col = response, predictor_cols = selected)
+            if self.standar:
+                prev_best_model.standardize(inplace=True)
+            pbm_ssr = prev_best_model.SSR()
 
             for candidate in remaining:
                 trial = selected + [candidate]
                 model = lrm(data, response_col=response, predictor_cols=trial)
                 if self.standar:
                     model.standardize(inplace=True)
-                sse = model.SSE()
-                if sse < best_sse_add:
-                    best_sse_add = sse
+                SSExtra = model.SSR() - pbm_ssr
+                if SSExtra > best_SSExtra:
+                    best_SSExtra = SSExtra
                     best_candidate = candidate
-                    best_model_add = model
+                    best_model = model
+                    Cp = (best_model.SSE() / MSE_full) - (n - 2 * (best_model.X_matrix.shape[1]))
 
-            improvement = prev_sse - best_sse_add
-            if improvement > tol_add:
+            temp_list = list(best_model.X.columns)
+            indice = temp_list.index(best_candidate)
+            if not ((best_model.coefficients_hipotesis_test(alpha=alpha))[indice]): #Es significativa
                 selected.append(best_candidate)
                 remaining.remove(best_candidate)
-                current_model = best_model_add
-                prev_sse = best_sse_add
-                improved = True
-                Cp = (current_model.SSE() / MSE_full) - (n - 2 * (current_model.X.shape[1] + 1))
                 results.append({
                     'step': step,
                     'predictors': tuple(selected),
-                    'MSE': current_model.MSE(),
-                    'R2_adj': current_model.R2_adj(),
-                    'PRESSp': current_model.PRESSp(),
-                    'Cp': Cp
+                    'MSE': best_model.MSE(),
+                    'R2_adj': best_model.R2_adj(),
+                    'PRESSp' : best_model.PRESSp(),
+                    'Cp' : Cp
                 })
-                history.append(('add', best_candidate))
+                # Verificar si hay otras variables no significativas en el modelo actual
+                significancias = best_model.coefficients_hipotesis_test(alpha=alpha)
+                variables_no_significativas = [var for i, var in enumerate(temp_list) if significancias[i]]
 
-            # --- Backward Step ---
-            worst_candidate = None
-            best_model_remove = None
-            min_sse_increase = np.inf
+                for var in variables_no_significativas:
+                    selected.remove(var)
+                    remaining.append(var)
 
-            for candidate in selected:
-                trial = [v for v in selected if v != candidate]
-                model = lrm(data, response_col=response, predictor_cols=trial)
-                if self.standar:
-                    model.standardize(inplace=True)
-                sse = model.SSE()
-                sse_increase = sse - prev_sse
-                if sse_increase < min_sse_increase:
-                    min_sse_increase = sse_increase
-                    worst_candidate = candidate
-                    best_model_remove = model
+                # Recalcular el modelo sin las no significativas si las hay
+                if variables_no_significativas:
+                    best_model = lrm(data, response_col=response, predictor_cols=selected)
+                    if self.standar:
+                        best_model.standardize(inplace=True)
+                    Cp = (best_model.SSE() / MSE_full) - (n - 2 * (best_model.X_matrix.shape[1]))
 
-            if min_sse_increase < tol_remove:
-                if history and history[-1] == ('add', worst_candidate):
-                    # Evita ciclo agregar/quitar misma variable
-                    pass
-                else:
-                    selected.remove(worst_candidate)
-                    remaining.append(worst_candidate)
-                    current_model = best_model_remove
-                    improved = True
-                    Cp = (current_model.SSE() / MSE_full) - (n - 2 * (current_model.X.shape[1] + 1))
                     results.append({
-                        'step': step + 0.5,  # indica que es una eliminación
+                        'step': step,
                         'predictors': tuple(selected),
-                        'MSE': current_model.MSE(),
-                        'R2_adj': current_model.R2_adj(),
-                        'PRESSp': current_model.PRESSp(),
+                        'MSE': best_model.MSE(),
+                        'R2_adj': best_model.R2_adj(),
+                        'PRESSp': best_model.PRESSp(),
                         'Cp': Cp
                     })
-                    history.append(('remove', worst_candidate))
-
-            if not improved:
+            else:
                 break
 
         return pd.DataFrame(results)
